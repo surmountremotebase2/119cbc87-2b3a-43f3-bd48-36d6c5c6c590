@@ -1,41 +1,65 @@
-#import pandas as pd
-import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import LSTM, Dense
+#from surmount.base_class import Strategy, TargetAllocation
+from surmount.technical_indicators import BB, RSI, ATR, SMA, Volume
 
-# Load data (via Surmount AI or external API)
-data = pd.read_csv("stock_data.csv")  # Price, volume, sentiment
-data["ma50"] = data["close"].rolling(50).mean()
-data["rsi"] = compute_rsi(data["close"], 14)
+class CombinedStrategy(Strategy):
+    def __init__(self):
+        self.tickers = ["AAPL", "AMZN", "META", "NFLX", "GOOGL"]
+        self.data_list = []
+        self.positions = {}  # Track mean reversion positions
 
-# Momentum Model (LSTM)
-def build_lstm():
-    model = Sequential()
-    model.add(LSTM(50, input_shape=(lookback, features)))
-    model.add(Dense(1, activation="sigmoid"))
-    model.compile(loss="binary_crossentropy", optimizer="adam")
-    return model
+    @property
+    def interval(self):
+        return "1day"
 
-# Mean Reversion Model (Random Forest)
-rf_model = RandomForestClassifier(n_estimators=100)
+    @property
+    def assets(self):
+        return self.tickers
 
-# Train models
-lstm_model = build_lstm()
-lstm_model.fit(X_train_lstm, y_train_lstm, epochs=10)
-rf_model.fit(X_train_rf, y_train_rf)
+    @property
+    def data(self):
+        return self.data_list
 
-# Generate signals
-def generate_signals(data):
-    momentum_signal = lstm_model.predict(data["features"])
-    reversion_signal = rf_model.predict(data["features"])
-    combined_signal = 0.6 * momentum_signal + 0.4 * reversion_signal
-    return "buy" if combined_signal > 0.7 else "sell" if combined_signal < 0.3 else "hold"
+    def run(self, data):
+        allocation_dict = {ticker: 0 for ticker in self.tickers}
+        signals = {ticker: 0 for ticker in self.tickers}
 
-# Execute trades on Surmount AI
-for i in range(len(data)):
-    signal = generate_signals(data.iloc[i])
-    if signal == "buy" and portfolio.cash > 0:
-        execute_trade("buy", data["close"][i], size=0.02 * portfolio.equity)
-    elif signal == "sell" and portfolio.positions > 0:
-        execute_trade("sell", data["close"][i], size=0.02 * portfolio.equity)
+        # Mean Reversion (with RSI and exit)
+        for ticker in self.tickers:
+            bb = BB(ticker, data['ohlcv'], length=20, std=2)
+            rsi = RSI(ticker, data['ohlcv'], length=14)
+            if bb['lower'] and rsi and len(bb['lower']) > 0 and len(rsi) > 0:
+                current_close = data['ohlcv'][-1][ticker]['close']
+                current_lower = bb['lower'][-1]
+                current_rsi = rsi[-1]
+                if current_close < current_lower and current_rsi < 30 and ticker not in self.positions:
+                    signals[ticker] += 1
+                    self.positions[ticker] = current_close
+            if ticker in self.positions and bb['middle'] and len(bb['middle']) > 0:
+                if current_close > bb['middle'][-1]:
+                    del self.positions[ticker]
+
+        # Momentum (SMA Crossover)
+        for ticker in self.tickers:
+            sma_short = SMA(ticker, data['ohlcv'], length=50)
+            sma_long = SMA(ticker, data['ohlcv'], length=200)
+            if sma_short and sma_long and len(sma_short) > 1 and len(sma_long) > 1:
+                if sma_short[-1] > sma_long[-1] and sma_short[-2] <= sma_long[-2]:
+                    signals[ticker] += 1
+
+        # Sentiment (Volume Spike)
+        for ticker in self.tickers:
+            volume = Volume(ticker, data['ohlcv'])
+            if volume and len(volume) > 20:
+                avg_volume = sum(volume[-20:-1]) / 20
+                current_volume = volume[-1]
+                current_data = data['ohlcv'][-1][ticker]
+                if current_volume > 2 * avg_volume and current_data['close'] > current_data['open']:
+                    signals[ticker] += 1
+
+        # Allocate based on signal strength
+        total_signals = sum(signals.values())
+        if total_signals > 0:
+            for ticker in self.tickers:
+                allocation_dict[ticker] = signals[ticker] / total_signals
+
+        return TargetAllocation(allocation_dict)
