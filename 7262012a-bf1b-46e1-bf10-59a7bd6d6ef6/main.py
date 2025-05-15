@@ -1,5 +1,5 @@
 #from surmount.base_class import Strategy, TargetAllocation
-from surmount.technical_indicators import BB, RSI, ATR, SMA, Volume
+from surmount.technical_indicators import BB, RSI, ATR, SMA
 
 class CombinedStrategy(Strategy):
     def __init__(self):
@@ -43,15 +43,15 @@ class CombinedStrategy(Strategy):
             sma_short = SMA(ticker, data['ohlcv'], length=50)
             sma_long = SMA(ticker, data['ohlcv'], length=200)
             if sma_short and sma_long and len(sma_short) > 1 and len(sma_long) > 1:
-                if sma_short[-1] > sma_long[-1] and sma_short[-2] <= sma_long[-2]:
-                    signals[ticker] += 1
+                FFif sma_short[-1] > sma_long[-1] and sma_short[-2] <= sma_long[-2]:
+                signals[ticker] += 1
 
-        # Sentiment (Volume Spike)
+        # Sentiment (Volume Spike using raw OHLCV volume)
         for ticker in self.tickers:
-            volume = Volume(ticker, data['ohlcv'])
-            if volume and len(volume) > 20:
-                avg_volume = sum(volume[-20:-1]) / 20
-                current_volume = volume[-1]
+            if len(data['ohlcv']) > 20:
+                volumes = [data['ohlcv'][i][ticker]['volume'] for i in range(-20, 0)]
+                avg_volume = sum(volumes[:-1]) / 19  # Exclude current day
+                current_volume = data['ohlcv'][-1][ticker]['volume']
                 current_data = data['ohlcv'][-1][ticker]
                 if current_volume > 2 * avg_volume and current_data['close'] > current_data['open']:
                     signals[ticker] += 1
