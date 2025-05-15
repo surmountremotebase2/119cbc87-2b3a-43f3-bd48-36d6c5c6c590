@@ -44,7 +44,7 @@ class CombinedStrategy(Strategy):
             sma_long = SMA(ticker, data['ohlcv'], length=200)
             if sma_short and sma_long and len(sma_short) > 1 and len(sma_long) > 1:
                 if sma_short[-1] > sma_long[-1] and sma_short[-2] <= sma_long[-2]:
-                signals[ticker] += 1
+                    signals[ticker] += 1
 
         # Sentiment (Volume Spike using raw OHLCV volume)
         for ticker in self.tickers:
