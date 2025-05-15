@@ -27,15 +27,15 @@ class TradingStrategy(Strategy):
         for ticker in self.tickers:
             bb = BB(ticker, data['ohlcv'], length=20, std=2)
             rsi = RSI(ticker, data['ohlcv'], length=14)
-            if bb['lower'] and rsi and len(bb['lower']) > 0 and len(rsi) > 0:
+            if bb and bb.get('lower') and bb.get('basis') and rsi and len(bb['lower']) > 0 and len(bb['basis']) > 0 and len(rsi) > 0:
                 current_close = data['ohlcv'][-1][ticker]['close']
                 current_lower = bb['lower'][-1]
                 current_rsi = rsi[-1]
                 if current_close < current_lower and current_rsi < 30 and ticker not in self.positions:
                     signals[ticker] += 1
                     self.positions[ticker] = current_close
-            if ticker in self.positions and bb['middle'] and len(bb['middle']) > 0:
-                if current_close > bb['middle'][-1]:
+            if ticker in self.positions and bb.get('basis') and len(bb['basis']) > 0:
+                if current_close > bb['basis'][-1]:
                     del self.positions[ticker]
 
         # Momentum (SMA Crossover)
