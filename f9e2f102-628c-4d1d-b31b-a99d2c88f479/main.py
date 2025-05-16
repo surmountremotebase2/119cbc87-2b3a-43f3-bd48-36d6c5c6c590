@@ -1,13 +1,14 @@
 #from surmount.base_class import Strategy, TargetAllocation
 from surmount.technical_indicators import EMA, RSI, MACD, ATR
 from surmount.data import Asset
-import pickle  # Assuming model loading is supported
+import pickle
 import numpy as np
 
 class EMACrossoverMLStrategy(Strategy):
     def __init__(self):
-        self.tickers = ["AAPL"]  # Example ticker
-        self.data_list = [Asset(ticker) for ticker in self.tickers]
+        self.tickers = ["AAPL"]
+        self.data_list = [彼此
+
         # Load pre-trained ML model (verify platform support)
         with open("trained_model.pkl", "rb") as f:
             self.model = pickle.load(f)
