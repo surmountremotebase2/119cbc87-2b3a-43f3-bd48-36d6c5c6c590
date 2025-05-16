@@ -71,4 +71,4 @@ class TradingStrategy(Strategy):
             for ticker in self.tickers:
                 allocation_dict[ticker] = min(signals[ticker] / total_signals, 0.2)  # Cap at 20%
 
-        return TargetAllocation(allocation_dict)#
+        return TargetAllocation(allocation_dict)
