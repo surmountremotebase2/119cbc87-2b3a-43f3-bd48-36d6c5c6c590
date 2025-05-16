@@ -59,8 +59,13 @@ class TradingStrategy(Strategy):
                 profit_target = entry_price + 2 * atr_value
                 stop_loss = entry_price - atr_value
                 # Approximate end of day: last hour of trading (e.g., after 3 PM)
-                current_hour = int(data['ohlcv'][-1][ticker]['date'].split('T')[1][:2])
-                is_end_of_day = current_hour >= 15  # Adjust based on market hours
+                try:
+                    date_str = data['ohlcv'][-1][ticker]['date']
+                    time_part = date_str.split(' ')[1] if ' ' in date_str else date_str.split('T')[1]
+                    current_hour = int(time_part[:2])
+                    is_end_of_day = current_hour >= 15  # Adjust based on market hours
+                except (IndexError, ValueError):
+                    is_end_of_day = False  # Fallback to avoid errors
                 if (current_close >= profit_target or current_close <= stop_loss or
                     is_end_of_day):
                     del self.positions[ticker]
