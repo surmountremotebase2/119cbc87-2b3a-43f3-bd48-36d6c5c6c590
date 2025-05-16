@@ -7,8 +7,7 @@ import numpy as np
 class EMACrossoverMLStrategy(Strategy):
     def __init__(self):
         self.tickers = ["AAPL"]
-        self.data_list = [彼此
-
+        self.data_list = [Asset(ticker) for ticker in self.tickers]
         # Load pre-trained ML model (verify platform support)
         with open("trained_model.pkl", "rb") as f:
             self.model = pickle.load(f)
